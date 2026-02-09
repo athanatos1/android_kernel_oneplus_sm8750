@@ -93,8 +93,14 @@ static int qcom_mhi_qrtr_send(struct qrtr_endpoint *ep, struct sk_buff *skb)
 	do {
                 reinit_completion(&qdev->ringfull);
 		rc = __qcom_mhi_qrtr_send(ep, skb);
-		if (rc == -EAGAIN)
-		   wait_for_completion(&qdev->ringfull);
+		if (rc == -EAGAIN) {
+                   if (system_state == SYSTEM_RESTART ||
+                       system_state == SYSTEM_POWER_OFF ||
+                       system_state == SYSTEM_HALT)
+                       break;
+
+		   wait_for_completion_timeout(&qdev->ringfull, 5*HZ);
+               }
 	} while (rc == -EAGAIN);
 
 	return rc;
